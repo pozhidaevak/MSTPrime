@@ -2,208 +2,157 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <limits.h>
+#include <time.h>
 
+#define MATR(i, j) matrix[mSize * (i) + (j)]
+#define P_MATR(i, j) procMatrix[mSize * (i) + (j)]
+#define MY_RND() rand() % 20
+//#define TEST
 
 FILE *f_matrix, *f_time, *f_res;
 
-int procQuantity;	// число доступных процессов
-int procRank;	// ранг текущего процесса
+int size;	// число доступных процессов
+int rank;	// ранг текущего процесса
 
-int* matr;
-int Size;
+int* procMatrix;
+int mSize;
 
-int procInd;
+int* pProcInd; // массив номеров первой строки, расположенной на процессе
+int* pProcNum; // количество строк линейной системы, расположенных на процессе
 
-struct Edge { double Pred; int Succ; };
+typedef struct { int Pred; int Succ; } Edge;
 
-int* Vnew;
+int* MST;
 int weight;
 
-int RowNum;
 void ProcessInitialization()
 {
-	int i,j;     
-	MPI_Status Status;
-	printf("procRank = %d\n",procRank);
-	if (procRank == 0)
-	{
-		f_matrix = fopen("example", "r");
-		fscanf(f_matrix, "%d\n", &Size);
-	}
+  int i,j;       
 
-	MPI_Bcast(&Size, 1, MPI_INT, 0, MPI_COMM_WORLD);
+  //рассчитьтать кол-во и начальную строку для каждого процесса TODO may be MPI_SCatter?
+  pProcInd = (int*)malloc(sizeof(int) * size);   
+  pProcNum = (int*)malloc(sizeof(int) * size);
 
-	int missingRows = Size;
-	RowNum = Size/procQuantity;
-	bool fl = false;
-	missingRows = Size - RowNum * procQuantity;
-	int l = 0;
-	procInd = 0;
-	if (missingRows != 0)
+  pProcInd[0] = 0;
+  pProcNum[0] = mSize / size;
+  int remains = size - (mSize % size); // кол-во процессов с mSize / size строк, у остальных на одну больше
+  for (i = 1; i < remains; ++i) 
+  {
+    pProcNum[i] = pProcNum[0];
+    pProcInd[i] = pProcInd[i - 1] + pProcNum[i - 1];
+  }
+  for (i = remains; i < size; ++i)
+  {
+    pProcNum[i] = pProcNum[0] + 1;
+    pProcInd[i] = pProcInd[i - 1] + pProcNum[i - 1];
+  }
+
+	int* matrix;
+	if (!rank)
 	{
-		for (i = 0; i < procRank; i++) 
+		matrix = (int*)malloc(mSize*mSize*sizeof(int));
+		for (i = 0; i < mSize; ++i )
 		{
-			missingRows--;
-			if (missingRows == 0)
+			MATR(i,i) = 0;
+			for(j = i + 1; j < mSize; ++j )
 			{
-				fl = true;
-				l = i;
-				break;
+				#ifdef TEST
+				int buf;
+				fscanf(f_matrix, "%d\n", &buf);
+				MATR(i,j)=MATR(j,i) = buf;
+				#else
+				MATR(i,j)=MATR(j,i)=MY_RND();
+				#endif
 			}
 		}
-		if (fl == false)
-			RowNum++;
-		MPI_Bcast(&l, 1, MPI_INT, procQuantity-1, MPI_COMM_WORLD);
-	}
-	else
-		l = procQuantity - 1;
-	if (procRank <= l)
-	{
-		procInd = RowNum * procRank;
-	}
-	else
-	{
-		procInd = (RowNum + 1) * (l+1) + RowNum * (procRank - l - 1);
-	}
-
-	matr = (int*)malloc(RowNum*Size*sizeof(int));
-	if (procRank == 0)
-	{
-		int* matrix = (int*)malloc(Size*Size*sizeof(int));
-
-		for (i = 0; i < RowNum; i++)
-		{
-			int buf;
-			matrix[i*Size + i] = 99;
-			matr[i*Size + i] = 99;
-			for (j = i + 1; j < RowNum; j++)
-			{
-				fscanf(f_matrix, "%i", &buf);
-				matrix[i*Size + j] = buf;
-				matrix[j*Size + i] = buf;
-				matr[i*Size + j] = buf;
-				matr[j*Size + i] = buf;
-			}
-			for (; j < Size; j++)
-			{
-				fscanf(f_matrix, "%i", &buf);
-				matrix[i*Size + j] = buf;
-				matrix[j*Size + i] = buf;
-				matr[i*Size + j] = buf;
-			}
-		}
-		int destSize = RowNum;		
-		int destRank = 1;
-		int nextProcInd = RowNum;
-		for (destRank = 1; destRank <= l; destRank++)
-		{
-			int k = 0;
-			nextProcInd += destSize;
-			for (; i < nextProcInd; i++)
-			{	
-				matrix[i*Size + i] = 99;
-				for (int j = i + 1; j < Size; j++)
-				{
-					fscanf(f_matrix, "%i", &matrix[i*Size + j]);
-					matrix[j*Size + i] = matrix[i*Size + j];
-				}
-				MPI_Send(&matrix[i*Size], Size, MPI_INT, destRank, k++, MPI_COMM_WORLD);
-			}
-		}
-		destSize--;
-		for (; destRank < procQuantity; destRank++)
-		{
-			int k = 0;
-			nextProcInd += destSize;
-			for (; i < nextProcInd; i++)
-			{	
-				matrix[i*Size + i] = 99;
-				for (int j = i + 1; j < Size; j++)
-				{
-					fscanf(f_matrix, "%i", &matrix[i*Size + j]);
-					matrix[j*Size + i] = matrix[i*Size + j];
-				}
-				MPI_Send(&matrix[i*Size], Size, MPI_INT, destRank, k++, MPI_COMM_WORLD);
-			}
-		}
+		#ifdef TEST
 		fclose(f_matrix);
-		delete []matrix;
+		#endif
+		
 	}
-	else
+	procMatrix = (int*)malloc(pProcNum[rank]*mSize*sizeof(int));
+	MPI_Datatype matrixString;
+	MPI_Type_contiguous(mSize,MPI_INT, &matrixString);
+	MPI_Type_commit(&matrixString);
+	MPI_Scatterv(matrix,pProcNum,pProcInd,matrixString,procMatrix,pProcNum[rank],matrixString,0,MPI_COMM_WORLD);
+	if(!rank)
 	{
-		for (i = 0; i  < RowNum; i++)
-		{
-			MPI_Recv(&matr[i*Size], Size, MPI_INT, 0, i, MPI_COMM_WORLD, &Status);
+		#ifdef TEST
+		for (i = 0; i < mSize; i++)
+		{	
+			for (int j = 0; j < mSize; j++)
+			{
+				printf("%d ", P_MATR(i, j));
+			}
+			printf("\n");
 		}
+		#endif
+		free(matrix);
 	}
+	
 
-	Vnew = new int [Size];
+	MST = (int*)malloc(sizeof(int)*mSize); // дерево вида MST[childInd] = parentInd
 
-	for (int i = 0; i < Size; i++)
+	for (int i = 0; i < mSize; i++)
 	{
-		Vnew[i] = -1;
+		MST[i] = -1;
 	}
-	printf("rowNum = %d\n", RowNum);
-	printf("size = %d\n", Size);
-	for (i = 0; i < RowNum; i++)
-	{	
-		for (int j = 0; j < Size; j++)
-		{
-			printf("%d ", matr[i*Size + j]);
-		}
-		printf("\n");
-	}
+	
 
 }
 
 void PrimsAlgorithm()
 {
-	Vnew[0] = 0;
+	MST[0] = 0;
 	weight = 0;
 
-	int min;
+	int mini;
 	int pred = 0;
 	int succ = 0;
 
-	struct { double MinValue; int ProcRank; } minRow, Row;
+	struct { int miniValue; int rank; } miniRow, Row;
 	Edge edge;
-	for (int k = 0; k < Size - 1; k++)
+	for (int k = 0; k < mSize - 1; k++)
 	{
-		min = 99;
-		for (int i = 0; i < RowNum; i++)
+		mini = INT_MAX;
+		for (int i = 0; i < pProcNum[rank]; i++)
 		{
-			if (Vnew[i + procInd] != -1)
+			if (MST[i + pProcInd[rank]] != -1)
 			{
-				for (int j = 0; j < Size; j++)
+				for (int j = 0; j < mSize; j++)
 				{
-					if (Vnew[j] == -1)
+					if (MST[j] == -1)
 					{
-						if (matr[i*Size + j] < min)
+						
+
+						if (P_MATR(i, j) < mini && P_MATR(i, j) != 0)
 						{
-							min = matr[i*Size + j];
+							mini = P_MATR(i, j);
 							succ = j;
 							pred = i;
+							
 						}
 					}
 				}
 			}
 		}
-		Row.MinValue = min;
-		Row.ProcRank = procRank;
+		Row.miniValue = mini;
+		Row.rank = rank;
 
-		MPI_Allreduce(&Row, &minRow, 1, MPI_DOUBLE_INT, MPI_MINLOC, MPI_COMM_WORLD);
-		edge.Pred = pred + procInd;
+		MPI_Allreduce(&Row, &miniRow, 1, MPI_2INT, MPI_MINLOC, MPI_COMM_WORLD);
+		edge.Pred = pred + pProcInd[rank];
 		edge.Succ = succ;
-		MPI_Bcast(&edge, 1, MPI_DOUBLE_INT, minRow.ProcRank, MPI_COMM_WORLD);
+		MPI_Bcast(&edge, 1, MPI_2INT, miniRow.rank, MPI_COMM_WORLD);
 
-		Vnew[edge.Succ] = edge.Pred;
-		weight += minRow.MinValue;
+		MST[edge.Succ] = edge.Pred;
+		weight += miniRow.miniValue;
 	}
 }
-void ProcessTermination () 
+void ProcessTerminiation () 
 {
-	delete [] matr;
-	delete [] Vnew;
+	free(procMatrix);
+	free(MST);
 }
 
 int main(int argc,char *argv[])
@@ -211,50 +160,62 @@ int main(int argc,char *argv[])
 	double start, finish, duration; // для подсчета времени вычислений
 
 	MPI_Init ( &argc, &argv );
-	MPI_Comm_rank ( MPI_COMM_WORLD, &procRank);
-	MPI_Comm_size ( MPI_COMM_WORLD, &procQuantity );
+	MPI_Comm_rank ( MPI_COMM_WORLD, &rank);
+	MPI_Comm_size ( MPI_COMM_WORLD, &size );
+	srand(time(NULL) + rank);
+	if (!rank)
+	{
+		#ifdef TEST
+		f_matrix = fopen("example", "r");
+		fscanf(f_matrix, "%d\n", &mSize);
+		#else
+		if (argc < 2)
+		{
+			printf("No size parameter\n");
+			MPI_Finalize();
+			return -1;
+		}
+		else
+		{
+			mSize = atoi(argv[1]);
+		}
+		#endif
+	}
+
+
+	MPI_Bcast(&mSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
 
 	ProcessInitialization();
 
 	start = MPI_Wtime();
 			
 	PrimsAlgorithm();
-	//if (!procRank)
-	//{
-	//	for (i = 0; i < Size; i++)
-	//	{
-	//			printf("%c %c\n", static_cast<char>(i + 'A'), static_cast<char>(Vnew[i] + 'A'));
-	//	}
-	//	printf("%d ",weight);
-	//}
+	
 
 	finish = MPI_Wtime();
 	duration = finish-start;
 
-	if (procRank == 0) 
+	if (!rank) 
 	{
-		f_res = fopen("Solutions/Result2.txt", "w");
-		fprintf(f_res,"%d ", weight);
-		fprintf(f_res,"%d %d", 1, Vnew[1]);
-		for (int i=2; i< Size; i++)
+		#ifdef TEST
+		f_res = fopen("Result.txt", "w");
+		fprintf(f_res,"%d\n ", weight);
+		for (int i=0; i< mSize; i++)
 		{
-			fprintf(f_res,",%d %d",i, (Vnew[i]));
+			fprintf(f_res,"%d %d\n",i, MST[i]);
 		}
 		fclose(f_res);
+		#endif
 
 		f_time = fopen("Time2.txt", "a+");
-		fprintf(f_time, " Number of processors: %d\n Number of vertices: %d\n Time of execution: %f\n\n", procQuantity, Size, duration);
-		fclose(f_time);
+		fprintf(f_time, " Number of processors: %d\n Number of vertices: %d\n Time of execution: %f\n\n", size, mSize, duration);
+  	fclose(f_time);
+		printf("\n Number of processors: %d\n Time of execution: %f\n\n", size, duration);
 	}
 
-	// вывод результата
-	if (procRank == 0)
-	{
-		printf("\n Number of processors: %d\n Time of execution: %f\n\n", procQuantity, duration);
-	}
 
 	// Завершение процесса вычислений
-	ProcessTermination(); 
+	ProcessTerminiation(); 
 	MPI_Finalize();
     return 0;
 }
