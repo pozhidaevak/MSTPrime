@@ -15,8 +15,8 @@ FILE *f_matrix, *f_time, *f_res;
 int size;  
 int rank;  
 
-int* procMatrix;
-int mSize;
+int* procMatrix; // часть матрицы для каждого процесса
+int mSize; // размерность матрицы
 
 int* pProcInd; // массив номеров первой строки, расположенной на процессе
 int* pProcNum; // количество строк линейной системы, расположенных на процессе
@@ -51,6 +51,7 @@ void ProcessInitialization()
     pProcInd[i] = pProcInd[i - 1] + pProcNum[i - 1];
   }
 
+  //заполнение матрицы
   int* matrix;
   if (!rank)
   {
@@ -114,18 +115,18 @@ void PrimsAlgorithm()
   int parent = 0;
   int child = 0;
 
-  struct { int miniValue; int rank; } miniRow, row;
+  struct { int miniValue; int rank; } miniRow/*минимальная строка*/, row/*минимальная строка в рамках одного процесса*/;
   Edge edge;
   for (int k = 0; k < mSize - 1; ++k)
   {
     mini = INT_MAX;
     for (int i = 0; i < pProcNum[rank]; ++i)
     {
-      if (MST[i + pProcInd[rank]] != -1)
+      if (MST[i + pProcInd[rank]] != -1) //одна из вершин должна входить в МОД
       {
         for (int j = 0; j < mSize; ++j)
         {
-          if (MST[j] == -1)
+          if (MST[j] == -1) //а другая нет
           {
             
             if (P_MATR(i, j) < mini && P_MATR(i, j) != 0)
@@ -140,7 +141,7 @@ void PrimsAlgorithm()
     }
     row.miniValue = mini;
     row.rank = rank;
-
+    //сравнивание минимальных строк полученных на каждом процессе
     MPI_Allreduce(&row, &miniRow, 1, MPI_2INT, MPI_MINLOC, MPI_COMM_WORLD);
     edge.parent = parent + pProcInd[rank];
     edge.child = child;
