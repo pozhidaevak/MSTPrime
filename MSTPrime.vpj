@@ -11,7 +11,7 @@
         DebugCallbackName="gdb"
         Version="1"
         OutputFile="%bdMSTPrime.exe"
-        CompilerConfigName="GCC64"
+        CompilerConfigName="GCC-4.6.2-mingw32"
         Defines="">
         <Menu>
             <Target
@@ -23,7 +23,7 @@
                 OutputExts="*.o"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine='D:\Portable\mingwx64\bin\x86_64-w64-mingw32-g++.exe -c %xup %defd -g -o "%bd%n%oe" %i %f'/>
+                <Exec CmdLine='D:\Portable\MinGW\bin\g++.exe -c %xup %defd -g -o "%bd%n%oe" %i %f'/>
             </Target>
             <Target
                 Name="Link"
@@ -34,7 +34,7 @@
                 Deletable="0"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine='D:\Portable\mingwx64\bin\x86_64-w64-mingw32-g++.exe %xup -g -o "%o" %objs'/>
+                <Exec CmdLine='D:\Portable\MinGW\bin\g++.exe %xup -g -o "%o" %objs'/>
             </Target>
             <Target
                 Name="Build"
@@ -101,6 +101,7 @@
                 Value="Executable"/>
         </List>
         <Libs PreObjects="0">
+            <Lib File="-lpthread"/>
         </Libs>
         <Includes>
         </Includes>
@@ -111,7 +112,7 @@
         DebugCallbackName="gdb"
         Version="1"
         OutputFile="%bdMSTPrime.exe"
-        CompilerConfigName="GCC64"
+        CompilerConfigName="GCC-4.6.2-mingw32"
         Defines="">
         <Menu>
             <Target
@@ -123,7 +124,7 @@
                 OutputExts="*.o"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine='D:\Portable\mingwx64\bin\x86_64-w64-mingw32-g++.exe -c %xup %defd -o "%bd%n%oe" %i %f'/>
+                <Exec CmdLine='D:\Portable\MinGW\bin\g++.exe -c %xup %defd -o "%bd%n%oe" %i %f'/>
             </Target>
             <Target
                 Name="Link"
@@ -134,7 +135,7 @@
                 Deletable="0"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine='D:\Portable\mingwx64\bin\x86_64-w64-mingw32-g++.exe %xup -o "%o" %objs'/>
+                <Exec CmdLine='D:\Portable\MinGW\bin\g++.exe %xup -o "%o" %objs'/>
             </Target>
             <Target
                 Name="Build"
@@ -201,6 +202,7 @@
                 Value="Executable"/>
         </List>
         <Libs PreObjects="0">
+            <Lib File="-lpthread"/>
         </Libs>
         <Includes>
         </Includes>

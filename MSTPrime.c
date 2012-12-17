@@ -5,11 +5,13 @@
 #include <limits.h>
 #include <time.h>
 #include <pthread.h>
+#include <assert.h>
+#include <unistd.h>
 
 #define MATR(i, j) matrix[mSize * (i) + (j)]
 #define P_MATR(i, j) procMatrix[mSize * (i) + (j)]
 #define MY_RND() rand() % 20
-//#define TEST
+#define TEST
 
 FILE *f_matrix, *f_time, *f_res;
 
@@ -22,6 +24,13 @@ int* pProcInd; // массив номеров первой строки, рас�
 int* pProcNum; // количество строк линейной системы, расположенных на процессе
 
 typedef struct { int parent; int child; } Edge;
+typedef struct 
+{
+	int low;
+	int hi;
+}
+Range;
+
 
 int* MST; // английский МОД :-)
 int weight; //вес МОД
@@ -56,7 +65,6 @@ void ProcessInitialization()
   }
 
   //заполнение матрицы
-  int* matrix;
 	matrix = (int*)malloc(mSize*mSize*sizeof(int));
 	for (i = 0; i < mSize; ++i )
 	{
@@ -74,23 +82,20 @@ void ProcessInitialization()
 	}
 	#ifdef TEST
 	fclose(f_matrix);
+	for (int i = 0; i <mSize; ++i)
+	{
+		for (int j = 0; j < mSize; ++j)
+		{
+			printf("%d ",MATR(i, j));
+		}
+		printf("\n");
+	}
+	fflush(stdout);
 	#endif 
  
-  procMatrix = (int*)malloc(pProcNum[rank]*mSize*sizeof(int));
+  
 
-  //разослать матрицу по процессорам
- 
-    #ifdef TEST
-    for (i = 0; i < mSize; ++i)
-    {  
-      for (int j = 0; j < mSize; ++j)
-      {
-        printf("%d ", P_MATR(i, j));
-      }
-      printf("\n");
-    }
-    #endif
-    
+  
   
   MST = (int*)malloc(sizeof(int)*mSize); // дерево вида MST[childInd] = parentInd
   for (int i = 0; i < mSize; ++i)
@@ -102,25 +107,30 @@ void ProcessInitialization()
   threadsRes = (Edge*)malloc(sizeof(Edge) * size);
 }
 
-void PrimsThread()
+void* PrimsThread(void* range)
 {
   pthread_t self = pthread_self();
-  int selfId
-  for (selfId = 0; selfId < size;++selfId)
+  int selfId = 0;
+  
+  for (int i = 0; i< size;++i)
   {
+	
     if(pthread_equal(self,threadsId[i]))
     {
+		
+		selfId = i;
       break;
     }
+	
   }
-  assert(selfId >= size);
+  
 
   int mini = INT_MAX;
-  int child = 0;
-  int parent = 0;
+  int child = -1;
+  int parent = -1;
   for (int i = pProcInd[selfId]; i < pProcNum[selfId] + pProcInd[selfId]; ++i)
     {
-      if (MST[i + pProcInd[selfId]] != -1) //одна из вершин должна входить в МОД
+      if (MST[i] != -1) //одна из вершин должна входить в МОД
       {
         for (int j = 0; j < mSize; ++j)
         {
@@ -129,7 +139,7 @@ void PrimsThread()
             
             if (MATR(i, j) < mini && MATR(i, j) != 0)
             {
-              mini = P_MATR(i, j);
+              mini = MATR(i, j);
               child = j;
               parent = i;   
             }
@@ -151,26 +161,36 @@ void PrimsAlgorithm()
   weight = 0;
 
   int mini = INT_MAX;
-  int parent = 0;
+  int parent = -123;
   int child = 0;
 
   struct { int miniValue; int rank; } miniRow/*минимальная строка*/, row/*минимальная строка в рамках одного процесса*/;
   Edge edge;
   for (int k = 0; k < mSize - 1; ++k)
   {
+	  mini = INT_MAX;
     //создаем нити
     for (int i = 0; i < size; ++i)
     {
-      pthread_create(&threadsId[i], NULL, PrimsThread,NULL);
+      pthread_create(&threadsId[i], NULL, &PrimsThread,NULL);
     }
     //ждем завершения
     for (int i = 0; i < size; ++i)
     {
-      pthread_join(threadsId[i],NULL);
+      if(pthread_join(threadsId[i],NULL))
+      {
+        printf("join fails\n");fflush(stdout);
+      }
     }
+    printf("Threads res child %d parent %d\n",threadsRes[0].child,threadsRes[0].parent);
+    fflush(stdout);
 
     for(int i = 0; i < size; ++i)
     {
+      if(threadsRes[i].child < 0 || threadsRes[i].parent < 0 )
+      {
+        continue;
+      }
       int currentWeight = MATR(threadsRes[i].parent, threadsRes[i].child);
       if(currentWeight < mini && currentWeight !=0 )
       {
@@ -198,6 +218,8 @@ void PrimsAlgorithm()
           }
         }
       }*/
+	 printf("Global res child %d parent %d\n",child,parent);
+    fflush(stdout);
     MST[child] = parent;
     weight += MATR(child, parent);
   }
@@ -223,6 +245,7 @@ int main(int argc,char *argv[])
     #ifdef TEST
     f_matrix = fopen("example", "r");
     fscanf(f_matrix, "%d\n", &mSize);
+	size = 6;
     #else
     if (argc < 3)
     {
