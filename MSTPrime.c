@@ -11,7 +11,7 @@
 #define MATR(i, j) matrix[mSize * (i) + (j)]
 #define P_MATR(i, j) procMatrix[mSize * (i) + (j)]
 #define MY_RND() rand() % 20
-#define TEST
+//#define TEST
 
 FILE *f_matrix, *f_time, *f_res;
 
@@ -182,8 +182,7 @@ void PrimsAlgorithm()
         printf("join fails\n");fflush(stdout);
       }
     }
-    printf("Threads res child %d parent %d\n",threadsRes[0].child,threadsRes[0].parent);
-    fflush(stdout);
+    
 
     for(int i = 0; i < size; ++i)
     {
@@ -199,27 +198,8 @@ void PrimsAlgorithm()
         child = threadsRes[i].child;
       }
     }
-    /*mini = INT_MAX;
-    for (int i = 0; i < pProcNum[rank]; ++i)
-    {
-      if (MST[i + pProcInd[rank]] != -1) //одна из вершин должна входить в МОД
-      {
-        for (int j = 0; j < mSize; ++j)
-        {
-          if (MST[j] == -1) //а другая нет
-          {
-            
-            if (P_MATR(i, j) < mini && P_MATR(i, j) != 0)
-            {
-              mini = P_MATR(i, j);
-              child = j;
-              parent = i;   
-            }
-          }
-        }
-      }*/
-	 printf("Global res child %d parent %d\n",child,parent);
-    fflush(stdout);
+    
+	
     MST[child] = parent;
     weight += MATR(child, parent);
   }
@@ -239,7 +219,7 @@ int main(int argc,char *argv[])
 {
   double start, finish, duration; // для подсчета времени вычислений
 
- 
+   
   srand(time(NULL));
   
     #ifdef TEST
@@ -265,11 +245,11 @@ int main(int argc,char *argv[])
   ProcessInitialization();
 
  
-      
+   start = (double)clock()/CLOCKS_PER_SEC;   
   PrimsAlgorithm();
   
  
-  duration = finish-start;
+  duration = (double)clock()/CLOCKS_PER_SEC-start;
 
   
     #ifdef TEST
