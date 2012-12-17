@@ -27,7 +27,8 @@ int* MST; // английский МОД :-)
 int weight; //вес МОД
 
 pthread_t* threadsId;
-int* threadsRes;
+Edge* threadsRes;
+
 
 /**
  * Определяется кол-во строк для каждого процессора, заполняется матрица, дробится на части и отправляется процессорам
@@ -74,14 +75,73 @@ void ProcessInitialization()
 	#ifdef TEST
 	fclose(f_matrix);
 	#endif 
+ 
+  procMatrix = (int*)malloc(pProcNum[rank]*mSize*sizeof(int));
+
+  //разослать матрицу по процессорам
+ 
+    #ifdef TEST
+    for (i = 0; i < mSize; ++i)
+    {  
+      for (int j = 0; j < mSize; ++j)
+      {
+        printf("%d ", P_MATR(i, j));
+      }
+      printf("\n");
+    }
+    #endif
+    
   
   MST = (int*)malloc(sizeof(int)*mSize); // дерево вида MST[childInd] = parentInd
   for (int i = 0; i < mSize; ++i)
   {
     MST[i] = -1;
   }
+
+  threadsId = (pthread_t*)malloc(sizeof(pthread_t) * size);
+  threadsRes = (Edge*)malloc(sizeof(Edge) * size);
 }
 
+void PrimsThread()
+{
+  pthread_t self = pthread_self();
+  int selfId
+  for (selfId = 0; selfId < size;++selfId)
+  {
+    if(pthread_equal(self,threadsId[i]))
+    {
+      break;
+    }
+  }
+  assert(selfId >= size);
+
+  int mini = INT_MAX;
+  int child = 0;
+  int parent = 0;
+  for (int i = pProcInd[selfId]; i < pProcNum[selfId] + pProcInd[selfId]; ++i)
+    {
+      if (MST[i + pProcInd[selfId]] != -1) //одна из вершин должна входить в МОД
+      {
+        for (int j = 0; j < mSize; ++j)
+        {
+          if (MST[j] == -1) //а другая нет
+          {
+            
+            if (MATR(i, j) < mini && MATR(i, j) != 0)
+            {
+              mini = P_MATR(i, j);
+              child = j;
+              parent = i;   
+            }
+          }
+        }
+      }
+    }
+
+    threadsRes[selfId].child = child;
+    threadsRes[selfId].parent = parent;
+    pthread_exit(NULL);
+}
 /**
  * Реализация алгоритма Прима с паралельным поиском минимального доступного ребра
  */
@@ -90,7 +150,7 @@ void PrimsAlgorithm()
   MST[0] = 0;
   weight = 0;
 
-  int mini;
+  int mini = INT_MAX;
   int parent = 0;
   int child = 0;
 
@@ -98,13 +158,26 @@ void PrimsAlgorithm()
   Edge edge;
   for (int k = 0; k < mSize - 1; ++k)
   {
+    //создаем нити
     for (int i = 0; i < size; ++i)
     {
-      pthread_create(&threadsId[i], NULL, PrimeThread,NULL);
+      pthread_create(&threadsId[i], NULL, PrimsThread,NULL);
     }
+    //ждем завершения
     for (int i = 0; i < size; ++i)
     {
-      pthread_join()
+      pthread_join(threadsId[i],NULL);
+    }
+
+    for(int i = 0; i < size; ++i)
+    {
+      int currentWeight = MATR(threadsRes[i].parent, threadsRes[i].child);
+      if(currentWeight < mini && currentWeight !=0 )
+      {
+        mini = currentWeight;
+        parent = threadsRes[i].parent;
+        child = threadsRes[i].child;
+      }
     }
     /*mini = INT_MAX;
     for (int i = 0; i < pProcNum[rank]; ++i)
@@ -125,17 +198,8 @@ void PrimsAlgorithm()
           }
         }
       }*/
-    
-    row.miniValue = mini;
-    row.rank = rank;
-    //сравнивание минимальных строк полученных на каждом процессе
-    MPI_Allreduce(&row, &miniRow, 1, MPI_2INT, MPI_MINLOC, MPI_COMM_WORLD);
-    edge.parent = parent + pProcInd[rank];
-    edge.child = child;
-    MPI_Bcast(&edge, 1, MPI_2INT, miniRow.rank, MPI_COMM_WORLD);
-
-    MST[edge.child] = edge.parent;
-    weight += miniRow.miniValue;
+    MST[child] = parent;
+    weight += MATR(child, parent);
   }
 }
 /**
@@ -145,6 +209,8 @@ void ProcessTerminiation ()
 {
   free(MST);
   free(matrix);
+  free(threadsRes);
+  free(threadsId);
 }
 
 int main(int argc,char *argv[])
@@ -161,7 +227,6 @@ int main(int argc,char *argv[])
     if (argc < 2)
     {
       printf("No size parameter\n");
-      MPI_Finalize();
       return -1;
     }
     else
