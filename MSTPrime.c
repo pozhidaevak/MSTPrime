@@ -1,9 +1,10 @@
-﻿#include "mpi.h"
+﻿//#include "mpi.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <limits.h>
 #include <time.h>
+#include <pthread.h>
 
 #define MATR(i, j) matrix[mSize * (i) + (j)]
 #define P_MATR(i, j) procMatrix[mSize * (i) + (j)]
@@ -13,9 +14,8 @@
 FILE *f_matrix, *f_time, *f_res;
 
 int size;  
-int rank;  
 
-int* procMatrix; // часть матрицы для каждого процесса
+int* matrix; 
 int mSize; // размерность матрицы
 
 int* pProcInd; // массив номеров первой строки, расположенной на процессе
@@ -25,6 +25,9 @@ typedef struct { int parent; int child; } Edge;
 
 int* MST; // английский МОД :-)
 int weight; //вес МОД
+
+pthread_t* threadsId;
+int* threadsRes;
 
 /**
  * Определяется кол-во строк для каждого процессора, заполняется матрица, дробится на части и отправляется процессорам
@@ -53,48 +56,24 @@ void ProcessInitialization()
 
   //заполнение матрицы
   int* matrix;
-  if (!rank)
-  {
-    matrix = (int*)malloc(mSize*mSize*sizeof(int));
-    for (i = 0; i < mSize; ++i )
-    {
-      MATR(i,i) = 0;
-      for(j = i + 1; j < mSize; ++j )
-      {
-        #ifdef TEST
-        int buf;
-        fscanf(f_matrix, "%d\n", &buf);
-        MATR(i,j)=MATR(j,i) = buf;
-        #else
-        MATR(i,j)=MATR(j,i)=MY_RND();
-        #endif
-      }
-    }
-    #ifdef TEST
-    fclose(f_matrix);
-    #endif 
-  }
-  procMatrix = (int*)malloc(pProcNum[rank]*mSize*sizeof(int));
-
-  //разослать матрицу по процессорам
-  MPI_Datatype matrixString; 
-  MPI_Type_contiguous(mSize,MPI_INT, &matrixString);
-  MPI_Type_commit(&matrixString);
-  MPI_Scatterv(matrix,pProcNum,pProcInd,matrixString,procMatrix,pProcNum[rank],matrixString,0,MPI_COMM_WORLD);
-  if(!rank)
-  {
-    #ifdef TEST
-    for (i = 0; i < mSize; ++i)
-    {  
-      for (int j = 0; j < mSize; ++j)
-      {
-        printf("%d ", P_MATR(i, j));
-      }
-      printf("\n");
-    }
-    #endif
-    free(matrix);
-  }
+	matrix = (int*)malloc(mSize*mSize*sizeof(int));
+	for (i = 0; i < mSize; ++i )
+	{
+	  MATR(i,i) = 0;
+	  for(j = i + 1; j < mSize; ++j )
+	  {
+		#ifdef TEST
+		int buf;
+		fscanf(f_matrix, "%d\n", &buf);
+		MATR(i,j)=MATR(j,i) = buf;
+		#else
+		MATR(i,j)=MATR(j,i)=MY_RND();
+		#endif
+	  }
+	}
+	#ifdef TEST
+	fclose(f_matrix);
+	#endif 
   
   MST = (int*)malloc(sizeof(int)*mSize); // дерево вида MST[childInd] = parentInd
   for (int i = 0; i < mSize; ++i)
@@ -119,7 +98,15 @@ void PrimsAlgorithm()
   Edge edge;
   for (int k = 0; k < mSize - 1; ++k)
   {
-    mini = INT_MAX;
+    for (int i = 0; i < size; ++i)
+    {
+      pthread_create(&threadsId[i], NULL, PrimeThread,NULL);
+    }
+    for (int i = 0; i < size; ++i)
+    {
+      pthread_join()
+    }
+    /*mini = INT_MAX;
     for (int i = 0; i < pProcNum[rank]; ++i)
     {
       if (MST[i + pProcInd[rank]] != -1) //одна из вершин должна входить в МОД
@@ -137,8 +124,8 @@ void PrimsAlgorithm()
             }
           }
         }
-      }
-    }
+      }*/
+    
     row.miniValue = mini;
     row.rank = rank;
     //сравнивание минимальных строк полученных на каждом процессе
@@ -156,20 +143,17 @@ void PrimsAlgorithm()
  */
 void ProcessTerminiation () 
 {
-  free(procMatrix);
   free(MST);
+  free(matrix);
 }
 
 int main(int argc,char *argv[])
 {
   double start, finish, duration; // для подсчета времени вычислений
 
-  MPI_Init ( &argc, &argv );
-  MPI_Comm_rank ( MPI_COMM_WORLD, &rank);
-  MPI_Comm_size ( MPI_COMM_WORLD, &size );
-  srand(time(NULL) + rank);
-  if (!rank)
-  {
+ 
+  srand(time(NULL));
+  
     #ifdef TEST
     f_matrix = fopen("example", "r");
     fscanf(f_matrix, "%d\n", &mSize);
@@ -185,21 +169,20 @@ int main(int argc,char *argv[])
       mSize = atoi(argv[1]);
     }
     #endif
-  }
+  
 
-  MPI_Bcast(&mSize, 1, MPI_INT, 0, MPI_COMM_WORLD);
+ 
 
   ProcessInitialization();
 
-  start = MPI_Wtime();
+ 
       
   PrimsAlgorithm();
   
-  finish = MPI_Wtime();
+ 
   duration = finish-start;
 
-  if (!rank) 
-  {
+  
     #ifdef TEST
     f_res = fopen("Result.txt", "w");
     fprintf(f_res,"%d\n ", weight);
@@ -214,10 +197,10 @@ int main(int argc,char *argv[])
     fprintf(f_time, " Number of processors: %d\n Number of vertices: %d\n Time of execution: %f\n\n", size, mSize, duration);
     fclose(f_time);
     printf("\n Number of processors: %d\n Time of execution: %f\n\n", size, duration);
-  }
+  
 
   // Завершение процесса вычислений
   ProcessTerminiation(); 
-  MPI_Finalize();
+ 
     return 0;
 }
