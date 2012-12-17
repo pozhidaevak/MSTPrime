@@ -13,7 +13,7 @@
 
 FILE *f_matrix, *f_time, *f_res;
 
-int size;  
+int size;//кол во создаваемых тредов
 
 int* matrix; 
 int mSize; // размерность матрицы
@@ -224,14 +224,15 @@ int main(int argc,char *argv[])
     f_matrix = fopen("example", "r");
     fscanf(f_matrix, "%d\n", &mSize);
     #else
-    if (argc < 2)
+    if (argc < 3)
     {
-      printf("No size parameter\n");
+      printf("We need two args -- matrix size and amount of threads\n");
       return -1;
     }
     else
     {
       mSize = atoi(argv[1]);
+      size = atoi(argv[2]);
     }
     #endif
   
