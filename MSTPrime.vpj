@@ -11,7 +11,8 @@
         DebugCallbackName="gdb"
         Version="1"
         OutputFile="%bdMSTPrime.exe"
-        CompilerConfigName="Latest Version">
+        CompilerConfigName="GCC64"
+        Defines="">
         <Menu>
             <Target
                 Name="Compile"
@@ -22,7 +23,7 @@
                 OutputExts="*.o"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine='g++ -c %xup  %defd -g -o "%bd%n%oe" %i "%f"'/>
+                <Exec CmdLine='D:\Portable\mingwx64\bin\x86_64-w64-mingw32-g++.exe -c %xup %defd -g -o "%bd%n%oe" %i %f'/>
             </Target>
             <Target
                 Name="Link"
@@ -33,7 +34,7 @@
                 Deletable="0"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine='g++ %xup -g -o "%o" %f %libs'/>
+                <Exec CmdLine='D:\Portable\mingwx64\bin\x86_64-w64-mingw32-g++.exe %xup -g -o "%o" %objs'/>
             </Target>
             <Target
                 Name="Build"
@@ -100,11 +101,11 @@
                 Value="Executable"/>
         </List>
         <Libs PreObjects="0">
-            <Lib File="-LC:/MPICH2/lib"/>
-            <Lib File="C:/MPICH2/lib/mpi.lib"/>
+            <Lib File="-LC:/MPICH64/lib"/>
+            <Lib File="C:/MPICH64/lib/libmpi.a"/>
         </Libs>
         <Includes>
-            <Include Dir="C:/MPICH2/include"/>
+            <Include Dir="C:/MPICH64/include"/>
         </Includes>
     </Config>
     <Config
@@ -113,7 +114,8 @@
         DebugCallbackName="gdb"
         Version="1"
         OutputFile="%bdMSTPrime.exe"
-        CompilerConfigName="Latest Version">
+        CompilerConfigName="GCC64"
+        Defines="">
         <Menu>
             <Target
                 Name="Compile"
@@ -124,7 +126,7 @@
                 OutputExts="*.o"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine='g++ -c %xup %defd -o "%bd%n%oe" %i "%f"'/>
+                <Exec CmdLine='D:\Portable\mingwx64\bin\x86_64-w64-mingw32-g++.exe -c %xup %defd -o "%bd%n%oe" %i %f'/>
             </Target>
             <Target
                 Name="Link"
@@ -135,7 +137,7 @@
                 Deletable="0"
                 SaveOption="SaveCurrent"
                 RunFromDir="%rw">
-                <Exec CmdLine='g++ %xup -o "%o" %f %libs'/>
+                <Exec CmdLine='D:\Portable\mingwx64\bin\x86_64-w64-mingw32-g++.exe %xup -o "%o" %objs'/>
             </Target>
             <Target
                 Name="Build"
@@ -202,11 +204,11 @@
                 Value="Executable"/>
         </List>
         <Libs PreObjects="0">
-            <Lib File="-LC:/MPICH2/lib"/>
-            <Lib File="C:/MPICH2/lib/mpi.lib"/>
+            <Lib File="-LC:/MPICH64/lib"/>
+            <Lib File="C:/MPICH64/lib/libmpi.a"/>
         </Libs>
         <Includes>
-            <Include Dir="C:/MPICH2/include"/>
+            <Include Dir="C:/MPICH64/include"/>
         </Includes>
     </Config>
     <Files>
