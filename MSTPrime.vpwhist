@@ -3,7 +3,7 @@ CurrentProject=MSTPrime.vpj
 [ProjectDates]
 MSTPrime.vpj=20121217163929758
 [ActiveConfig]
-MSTPrime.vpj=Debug
+MSTPrime.vpj=,Release
 [TreeExpansion2]
 - MSTPrime.vpj
   - Source Files
@@ -13,14 +13,14 @@ MSTPrime.vpj=Debug
   + Other Files
 scroll:0
 [State]
-SCREEN: 1366 768 0 0 1366 716 0 0 N 0 0 0 0 1052 317 0
+SCREEN: 1366 768 0 0 1360 716 0 0 N 0 0 0 0 1046 330 0
 CWD: \inst\9semestr\PS\MSTPrime
 BUFFER: BN="MSTPrime.c"
-BI: MA=1 74 1  TABS=1 5  WWS=1 IWT=1 ST=0 IN=2 BW=0 US=32000 RO=0 SE=1 SN=0 BIN=0 MN=C/C++	HM=0 MF=1180264 TL=0 MLL=0 ASE=0 LNL=1 LCF=0 CAPS=0 E=71 ESBU2=1 CL="" SC="" SCE= SCU=
-VIEW: LN=.0 CL=1 LE=0 CX=2 CY=0 WI=5 BI=24 HT=0 HN=0 HF=0 HC=4
+BI: MA=1 74 1  TABS=1 5  WWS=1 IWT=1 ST=0 IN=2 BW=0 US=32000 RO=0 SE=1 SN=0 BIN=0 MN=C/C++	HM=0 MF=787040 TL=0 MLL=0 ASE=0 LNL=1 LCF=0 CAPS=0 E=71 ESBU2=1 CL="" SC="" SCE= SCU=
+VIEW: LN=.0 CL=1 LE=0 CX=2 CY=0 WI=5 BI=4 HT=0 HN=0 HF=0 HC=4
 WINDOW: 0 0 821 225 -1 -1 M  WF=0 WT=2 "Default Unicode Font,10,0,1"
 BUFFER: BN="MSTPrime.c"
-VIEW: LN=.5641 CL=44 LE=0 CX=44 CY=11 WI=181 BI=24 HT=0 HN=0 HF=0 HC=4
+VIEW: LN=.5641 CL=23 LE=0 CX=23 CY=11 WI=13 BI=4 HT=0 HN=0 HF=0 HC=4
 FILEHIST: 9
 \WORK\repo2\ps\trunk\shtrih-m\MPPro\win32\src\win32.c
 \WORK\repo2\ps\trunk\shtrih-m\MPPro\WPS\menu\menu_provider_vizitor._c
