@@ -1,7 +1,7 @@
 [Global]
 CurrentProject=MSTPrime.vpj
 [ProjectDates]
-MSTPrime.vpj=20121217163929758
+MSTPrime.vpj=20121218014116234
 [ActiveConfig]
 MSTPrime.vpj=,Release
 [TreeExpansion2]
@@ -13,7 +13,7 @@ MSTPrime.vpj=,Release
   + Other Files
 scroll:0
 [State]
-SCREEN: 1366 768 0 0 1360 716 0 0 N 0 0 0 0 1046 330 0
+SCREEN: 1366 768 0 0 1360 716 0 0 M 0 0 0 0 1060 338 0
 CWD: \inst\9semestr\PS\MSTPrime
 BUFFER: BN="MSTPrime.c"
 BI: MA=1 74 1  TABS=1 5  WWS=1 IWT=1 ST=0 IN=2 BW=0 US=32000 RO=0 SE=1 SN=0 BIN=0 MN=C/C++	HM=0 MF=787040 TL=0 MLL=0 ASE=0 LNL=1 LCF=0 CAPS=0 E=71 ESBU2=1 CL="" SC="" SCE= SCU=
