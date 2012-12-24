@@ -36,6 +36,7 @@ int* MST; // английский МОД :-)
 int weight; //вес МОД
 
 pthread_t* threadsId;
+pthread_barrier_t barr;
 Edge* threadsRes;
 
 
@@ -125,31 +126,59 @@ void* PrimsThread(void* range)
   }
   
 
-  int mini = INT_MAX;
-  int child = -1;
-  int parent = -1;
-  for (int i = pProcInd[selfId]; i < pProcNum[selfId] + pProcInd[selfId]; ++i)
-    {
-      if (MST[i] != -1) //одна из вершин должна входить в МОД
+  for (int k = 0; k < mSize - 1; ++k)
+  {
+
+    int mini = INT_MAX;
+    int child = -1;
+    int parent = -1;
+    for (int i = pProcInd[selfId]; i < pProcNum[selfId] + pProcInd[selfId]; ++i)
       {
-        for (int j = 0; j < mSize; ++j)
+        if (MST[i] != -1) //одна из вершин должна входить в МОД
         {
-          if (MST[j] == -1) //а другая нет
+          for (int j = 0; j < mSize; ++j)
           {
-            
-            if (MATR(i, j) < mini && MATR(i, j) != 0)
+            if (MST[j] == -1) //а другая нет
             {
-              mini = MATR(i, j);
-              child = j;
-              parent = i;   
+              
+              if (MATR(i, j) < mini && MATR(i, j) != 0)
+              {
+                mini = MATR(i, j);
+                child = j;
+                parent = i;   
+              }
             }
           }
         }
       }
-    }
 
-    threadsRes[selfId].child = child;
-    threadsRes[selfId].parent = parent;
+      threadsRes[selfId].child = child;
+      threadsRes[selfId].parent = parent;
+      pthread_barrier_wait(&barr);
+      if (!selfId)
+      {
+        int mini = INT_MAX;
+        int parent = -123;
+        int child = 0;
+        for(int i = 0; i < size; ++i)
+        {
+          if(threadsRes[i].child < 0 || threadsRes[i].parent < 0 )
+          {
+            continue;
+          }
+          int currentWeight = MATR(threadsRes[i].parent, threadsRes[i].child);
+          if(currentWeight < mini && currentWeight !=0 )
+          {
+            mini = currentWeight;
+            parent = threadsRes[i].parent;
+            child = threadsRes[i].child;
+          }
+        }
+        MST[child] = parent;
+        weight += MATR(child, parent);
+      }
+      pthread_barrier_wait(&barr);
+    }
     pthread_exit(NULL);
 }
 /**
@@ -159,17 +188,12 @@ void PrimsAlgorithm()
 {
   MST[0] = 0;
   weight = 0;
+  pthread_barrier_init(&barr, NULL, size);
+ 
 
-  int mini = INT_MAX;
-  int parent = -123;
-  int child = 0;
-
-  struct { int miniValue; int rank; } miniRow/*минимальная строка*/, row/*минимальная строка в рамках одного процесса*/;
-  Edge edge;
-  for (int k = 0; k < mSize - 1; ++k)
-  {
-	  mini = INT_MAX;
-    //создаем нити
+ 
+  
+	 
     for (int i = 0; i < size; ++i)
     {
       pthread_create(&threadsId[i], NULL, &PrimsThread,NULL);
@@ -182,27 +206,8 @@ void PrimsAlgorithm()
         printf("join fails\n");fflush(stdout);
       }
     }
-    
+    pthread_barrier_destroy(&barr);
 
-    for(int i = 0; i < size; ++i)
-    {
-      if(threadsRes[i].child < 0 || threadsRes[i].parent < 0 )
-      {
-        continue;
-      }
-      int currentWeight = MATR(threadsRes[i].parent, threadsRes[i].child);
-      if(currentWeight < mini && currentWeight !=0 )
-      {
-        mini = currentWeight;
-        parent = threadsRes[i].parent;
-        child = threadsRes[i].child;
-      }
-    }
-    
-	
-    MST[child] = parent;
-    weight += MATR(child, parent);
-  }
 }
 /**
  * Освобождение памяти
